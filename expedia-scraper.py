@@ -8,13 +8,14 @@ import contextlib
 # import selenium.webdriver as webdriver
 import selenium.webdriver.support.ui as ui
 
+departureDate = '01/20/2015'
 originCity = 'LAX'
-destinationCity = 'CLT'
-majorCities = ['NYC','CHI','ATL','BOS','MSP']
+destinationCity = 'SEA'
+majorCities = ['ATL', 'LAX', 'CHI', 'DFW', 'DEN', 'NYC', 'SFO', 'CLT', 'LAS', 'PHX', 'MIA', 'IAH', 'SEA', 'PDX']
 
-def checkDirect(origin, destination):
+def checkDirect(origin, destination, departureDate):
 	with contextlib.closing(webdriver.Firefox()) as driver:
-	  driver.get("http://www.expedia.com/Flights-Search?trip=oneway&leg1=from:" + origin + ",to:" + destination + ",departure:01/20/2015TANYT&passengers=children:0,adults:1,seniors:0,infantinlap:Y&mode=search")
+	  driver.get("http://www.expedia.com/Flights-Search?trip=oneway&leg1=from:" + origin + ",to:" + destination + ",departure:" + departureDate + "TANYT&passengers=children:0,adults:1,seniors:0,infantinlap:Y&mode=search")
 	  try:
 	    ui.WebDriverWait(driver, 15).until_not(EC.visibility_of_element_located((By.ID, "acol-interstitial")))
 	  finally:
@@ -22,12 +23,13 @@ def checkDirect(origin, destination):
 	    soup = BeautifulSoup(html)
 	    priceInfo = [soup.find_all('span', class_='price-emphasis')[0], soup.find_all('span', class_='price-emphasis')[1]]
 	    lowestPrice = priceInfo[0].get_text()[1:] + priceInfo[1].get_text()
+	    print lowestPrice
 	    return lowestPrice
 
 
-def checkMulti(origin, destination, majorCity, lowestPrice):
+def checkMulti(origin, destination, majorCity, departureDate, lowestPrice):
 	with contextlib.closing(webdriver.Firefox()) as driver:
-	  driver.get("http://www.expedia.com/Flights-Search?trip=oneway&leg1=from:" + origin + ",to:" + majorCity + ",departure:01/20/2015TANYT&passengers=children:0,adults:1,seniors:0,infantinlap:Y&mode=search")
+	  driver.get("http://www.expedia.com/Flights-Search?trip=oneway&leg1=from:" + origin + ",to:" + majorCity + ",departure:" + departureDate + "TANYT&passengers=children:0,adults:1,seniors:0,infantinlap:Y&mode=search")
 	  try:
 	    ui.WebDriverWait(driver, 15).until_not(EC.visibility_of_element_located((By.ID, "acol-interstitial")))
 	  finally:
@@ -43,9 +45,11 @@ def checkMulti(origin, destination, majorCity, lowestPrice):
 	        if stopInfo == destination:
 	          priceInfo = tag.find_all('div', class_='offer-price')[0].find_all('span', class_='price-emphasis')
 	          convertedPrice = priceInfo[0].get_text()[1:] + priceInfo[1].get_text()
+	          print convertedPrice
 	          if convertedPrice < lowestPrice:
-	          	print 'yes', majorCity
+	          	print 'you saved $', float(lowestPrice) - float(convertedPrice), 'by traveling through', majorCity
 
-theLowestPrice = checkDirect(originCity, destinationCity)
+theLowestPrice = checkDirect(originCity, destinationCity, departureDate)
 for city in majorCities:
-	checkMulti(originCity, destinationCity, city, theLowestPrice)
+	if city != originCity:
+		checkMulti(originCity, destinationCity, city, departureDate, theLowestPrice)
